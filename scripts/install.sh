@@ -19,11 +19,11 @@ fi
 
 # Prompt for license key
 echo ""
-read -p "Enter License Key (e.g., HL-XXXX-XXXX-XXXX-XXXX): " LICENSE_KEY
+read -p "Enter License Key (press Enter to skip for testing): " LICENSE_KEY
 if [ -z "$LICENSE_KEY" ]; then
-    echo "Error: License key cannot be empty"
-    echo "If you don't have a license key, please contact support@hushlane.app"
-    exit 1
+    LICENSE_KEY="test-license-key"
+    echo "⚠️  No license key provided - using test mode"
+    echo "   License validation will be disabled"
 fi
 
 APP_URL="https://${CUSTOMER_ID}.hushlane.app"
