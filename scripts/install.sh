@@ -66,8 +66,8 @@ cd $INSTALL_DIR
 
 # Download docker-compose.yml and .env.template
 echo "📦 Downloading application files..."
-curl -sSL https://raw.githubusercontent.com/pjain26/hushlane-deployment/main/docker-compose.yml -o docker-compose.yml
-curl -sSL https://raw.githubusercontent.com/pjain26/hushlane-deployment/main/.env.template -o .env
+curl -sSL https://raw.githubusercontent.com/Parvj26/hushlane-deployment/main/docker-compose.yml -o docker-compose.yml
+curl -sSL https://raw.githubusercontent.com/Parvj26/hushlane-deployment/main/.env.template -o .env
 
 # Generate SECRET_KEY
 SECRET_KEY=$(openssl rand -hex 32)
