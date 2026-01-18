@@ -139,25 +139,27 @@ mkdir -p data media backups
 
 # Setup Cloudflare Tunnel
 echo ""
-echo "🌐 Cloudflare Tunnel Setup"
-echo "=========================="
-echo "Please follow these steps:"
+echo "🌐 Cloudflare Tunnel Configuration"
+echo "===================================="
+echo "Paste the Cloudflare Tunnel Token provided in your welcome email."
 echo ""
-echo "1. Go to: https://one.dash.cloudflare.com/"
-echo "2. Navigate to: Networks > Tunnels"
-echo "3. Create a new tunnel (or use existing)"
-echo "4. Add public hostname:"
-echo "   - Subdomain: $CUSTOMER_ID"
-echo "   - Domain: hushlane.app"
-echo "   - Service: http://hushlane_app:8000"
-echo "5. Copy the tunnel token"
+echo "If you don't have a tunnel token, please contact support@hushlane.app"
 echo ""
-read -p "Paste your Cloudflare Tunnel Token: " TUNNEL_TOKEN
+read -p "Cloudflare Tunnel Token: " TUNNEL_TOKEN
 
 if [ -z "$TUNNEL_TOKEN" ]; then
-    echo "Error: Tunnel token cannot be empty"
+    echo ""
+    echo "❌ Error: Tunnel token is required"
+    echo ""
+    echo "   Your welcome email from HushLane contains:"
+    echo "   1. License Key (already entered ✓)"
+    echo "   2. Tunnel Token (paste it above)"
+    echo ""
+    echo "   Can't find it? Contact: support@hushlane.app"
     exit 1
 fi
+
+echo "✅ Tunnel token configured"
 
 sed -i "s/CLOUDFLARE_TUNNEL_TOKEN=.*/CLOUDFLARE_TUNNEL_TOKEN=$TUNNEL_TOKEN/" .env
 
