@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+# Note: Not using 'set -e' to handle errors gracefully
 
 echo "🚀 HushLane Installation Script"
 echo "================================"
@@ -9,6 +9,15 @@ if [ "$EUID" -ne 0 ]; then
    echo "Please run as root (sudo ./install.sh)"
    exit 1
 fi
+
+# Function to check if command succeeded
+check_success() {
+    if [ $? -ne 0 ]; then
+        echo "❌ Error: $1"
+        echo "   $2"
+        exit 1
+    fi
+}
 
 # Prompt for customer ID
 read -p "Enter Customer ID (e.g., 'acme' for acme.hushlane.app): " CUSTOMER_ID
@@ -43,19 +52,61 @@ fi
 # Check system requirements
 echo ""
 echo "✅ Checking system requirements..."
+
+# Check and install Docker
 if ! command -v docker &> /dev/null; then
     echo "Docker not found. Installing..."
+
+    # Fix any broken packages first
+    echo "   Fixing package manager..."
+    apt-get -f install -y > /dev/null 2>&1 || true
+    dpkg --configure -a > /dev/null 2>&1 || true
+
+    # Install Docker
     curl -fsSL https://get.docker.com -o get-docker.sh
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to download Docker installer"
+        echo "   Please check your internet connection"
+        exit 1
+    fi
+
     sh get-docker.sh
-    systemctl enable docker
-    systemctl start docker
+    if [ $? -ne 0 ]; then
+        echo "❌ Docker installation failed"
+        echo "   Please run: sudo apt-get update && sudo apt-get install docker.io"
+        exit 1
+    fi
+
+    systemctl enable docker 2>/dev/null || true
+    systemctl start docker 2>/dev/null || true
     rm get-docker.sh
+
+    echo "✅ Docker installed successfully"
+else
+    echo "✅ Docker already installed"
 fi
 
+# Verify Docker is working
+if ! docker ps > /dev/null 2>&1; then
+    echo "⚠️  Docker daemon not running. Starting..."
+    systemctl start docker
+    sleep 2
+    if ! docker ps > /dev/null 2>&1; then
+        echo "❌ Docker is installed but not running"
+        echo "   Please start Docker manually: sudo systemctl start docker"
+        exit 1
+    fi
+fi
+
+# Check and install Docker Compose
 if ! command -v docker-compose &> /dev/null; then
     echo "Docker Compose not found. Installing..."
     curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    check_success "Failed to download Docker Compose" "Please check your internet connection"
     chmod +x /usr/local/bin/docker-compose
+    echo "✅ Docker Compose installed successfully"
+else
+    echo "✅ Docker Compose already installed"
 fi
 
 # Create installation directory
@@ -67,7 +118,10 @@ cd $INSTALL_DIR
 # Download docker-compose.yml and .env.template
 echo "📦 Downloading application files..."
 curl -sSL https://raw.githubusercontent.com/Parvj26/hushlane-deployment/main/docker-compose.yml -o docker-compose.yml
+check_success "Failed to download docker-compose.yml" "Please check your internet connection"
+
 curl -sSL https://raw.githubusercontent.com/Parvj26/hushlane-deployment/main/.env.template -o .env
+check_success "Failed to download .env.template" "Please check your internet connection"
 
 # Generate SECRET_KEY
 SECRET_KEY=$(openssl rand -hex 32)
@@ -109,12 +163,27 @@ sed -i "s/CLOUDFLARE_TUNNEL_TOKEN=.*/CLOUDFLARE_TUNNEL_TOKEN=$TUNNEL_TOKEN/" .en
 
 # Pull Docker images
 echo ""
-echo "📥 Pulling Docker images..."
+echo "📥 Pulling Docker images (this may take 2-3 minutes)..."
 docker-compose pull
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to pull Docker images"
+    echo "   This usually means:"
+    echo "   1. No internet connection"
+    echo "   2. Docker Hub is unreachable"
+    echo "   3. Docker daemon not running"
+    echo ""
+    echo "   Please check your connection and try again"
+    exit 1
+fi
 
 # Start services
 echo "🚀 Starting HushLane..."
 docker-compose up -d
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to start services"
+    echo "   Check logs: cd /opt/hushlane && docker-compose logs"
+    exit 1
+fi
 
 # Wait for services to be healthy
 echo "⏳ Waiting for services to start..."
